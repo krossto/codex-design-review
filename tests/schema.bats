@@ -33,3 +33,24 @@ ROOT="${BATS_TEST_DIRNAME}/.."
   run bash -c "echo '$sample' | jq -e '.verdict.overall and .findings[0].suggestion'"
   [ "$status" -eq 0 ]
 }
+
+@test "hooks.json is valid JSON" {
+  run jq empty "$ROOT/hooks/hooks.json"
+  [ "$status" -eq 0 ]
+}
+
+@test "hooks.json registers a PostToolUse hook" {
+  run jq -e '.hooks.PostToolUse[0].hooks[0].command' "$ROOT/hooks/hooks.json"
+  [ "$status" -eq 0 ]
+}
+
+@test "hooks.json matcher targets Write/Edit tools" {
+  run jq -r '.hooks.PostToolUse[0].matcher' "$ROOT/hooks/hooks.json"
+  [ "$output" = "Write|Edit|MultiEdit" ]
+}
+
+@test "hooks.json command references on-design-doc-written.sh via CLAUDE_PLUGIN_ROOT" {
+  run jq -r '.hooks.PostToolUse[0].hooks[0].command' "$ROOT/hooks/hooks.json"
+  [[ "$output" == *'${CLAUDE_PLUGIN_ROOT}'* ]]
+  [[ "$output" == *"on-design-doc-written.sh"* ]]
+}
