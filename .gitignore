@@ -1,0 +1,6 @@
+# 一時ファイル(レビュー実行時の verdict / events)
+/tmp-cdr/
+*.log
+# ローカルの有効化マーカー(プロジェクト側に置くものなのでこのリポには不要)
+.claude/codex-design-review.enabled
+.claude/.codex-design-review.lock

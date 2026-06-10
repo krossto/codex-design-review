@@ -1,0 +1,9 @@
+{
+  "name": "codex-design-review",
+  "version": "0.1.0",
+  "description": "Cross-model review of Superpowers spec/plan documents by OpenAI Codex CLI",
+  "author": {
+    "name": "krossto"
+  },
+  "keywords": ["superpowers", "code-review", "codex", "cross-model"]
+}

@@ -1,0 +1,44 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["verdict", "findings"],
+  "properties": {
+    "verdict": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["overall", "confidence", "summary"],
+      "properties": {
+        "overall": {
+          "type": "string",
+          "enum": ["approved", "revise"],
+          "description": "approved = 重大な指摘なし。revise = 対応すべき指摘あり"
+        },
+        "confidence": {
+          "type": "number",
+          "description": "0.0-1.0。レビュー全体の確信度"
+        },
+        "summary": {
+          "type": "string",
+          "description": "全体講評(短文)"
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "description": "actionable な指摘のみ。各指摘に具体的な修正案を必ず添える",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "section", "issue", "why", "suggestion"],
+        "properties": {
+          "id": {"type": "string", "description": "F1, F2, ... の連番"},
+          "severity": {"type": "string", "enum": ["critical", "important", "minor"]},
+          "section": {"type": "string", "description": "対象セクション名/見出し"},
+          "issue": {"type": "string", "description": "何が問題か"},
+          "why": {"type": "string", "description": "なぜ問題か"},
+          "suggestion": {"type": "string", "description": "具体的な修正案"}
+        }
+      }
+    }
+  }
+}

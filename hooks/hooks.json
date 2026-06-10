@@ -1,0 +1,17 @@
+{
+  "description": "codex-design-review: detect spec/plan writes and trigger the cross-model review skill",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"${CLAUDE_PLUGIN_ROOT}/hooks/on-design-doc-written.sh\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
