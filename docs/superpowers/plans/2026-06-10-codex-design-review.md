@@ -724,6 +724,10 @@ if [ -z "${CODEX_HOME:-}" ] && [ -f "$HOME/.config/codex/auth.json" ]; then
 fi
 
 # --- codex 実行 ---
+# 注: codex exec は positional プロンプトを与えても stdin を読みに行く。
+# stdin が EOF にならない文脈(バックグラウンド実行・パイプ)では
+# "Reading additional input from stdin..." で無限待ちする。
+# よって両呼び出しとも </dev/null で stdin を閉じる(必須)。
 if [ "$cmd" = "round1" ]; then
   "$codex_bin" exec \
     -C "$proj" \
@@ -732,7 +736,7 @@ if [ "$cmd" = "round1" ]; then
     --output-schema "$schema" \
     -o "$verdict" \
     --json \
-    "$prompt" > "$events" 2>>"$out_dir/stderr.log"
+    "$prompt" </dev/null > "$events" 2>>"$out_dir/stderr.log"
   rc=$?
 else
   # resume: -s/-C なし。sandbox は -c で強制。cwd を proj に。
@@ -743,7 +747,7 @@ else
       --output-schema "$schema" \
       -o "$verdict" \
       --json \
-      "$prompt" ) > "$events" 2>>"$out_dir/stderr.log"
+      "$prompt" </dev/null ) > "$events" 2>>"$out_dir/stderr.log"
   rc=$?
 fi
 
