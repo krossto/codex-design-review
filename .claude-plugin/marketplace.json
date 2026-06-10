@@ -1,0 +1,18 @@
+{
+  "name": "codex-design-review-marketplace",
+  "description": "Local marketplace for codex-design-review plugin",
+  "owner": {
+    "name": "krossto"
+  },
+  "plugins": [
+    {
+      "name": "codex-design-review",
+      "description": "Cross-model review of Superpowers spec/plan documents by OpenAI Codex CLI",
+      "version": "0.1.0",
+      "source": "./",
+      "author": {
+        "name": "krossto"
+      }
+    }
+  ]
+}
