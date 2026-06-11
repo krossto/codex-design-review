@@ -21,18 +21,31 @@ Claude と Codex は訓練系統が異なるため、自己レビューでは見
 1. **対象を特定**: トリガーが渡した「対象ドキュメント種別(spec/plan)」と「対象パス」を確認。プロジェクトルートは `$CLAUDE_PROJECT_DIR`。
 2. **ロック作成**(再発火抑止): `touch "$CLAUDE_PROJECT_DIR/.claude/.codex-design-review.lock"`。
    このロックは**必ず最後に削除**する。途中でエラーになっても削除すること(下記「完了処理」)。
-3. **作業ディレクトリ**: `mkdir -p "$CLAUDE_PROJECT_DIR/tmp-cdr"` と、レビュー記録用に `mkdir -p "$CLAUDE_PROJECT_DIR/docs/superpowers/reviews"`。
-4. **実行 ID**: `uuid=$(uuidgen)`。出力先 `out1="$CLAUDE_PROJECT_DIR/tmp-cdr/$uuid-r1"`。
+3. **作業ディレクトリ解決**: OS の一時領域に作業ディレクトリ `$work` を1回だけ確保する（`TMPDIR` 尊重）。失敗したら `.claude/tmp-cdr/` へ自動フォールバック。以降このパスを全ラウンドで使う。
+   ```bash
+   work=""
+   work="$(mktemp -d "${TMPDIR:-/tmp}/codex-design-review-XXXXXX" 2>/dev/null)" || true
+   if [ -z "$work" ]; then
+     mkdir -p "$CLAUDE_PROJECT_DIR/.claude/tmp-cdr" \
+       && work="$(mktemp -d "$CLAUDE_PROJECT_DIR/.claude/tmp-cdr/run-XXXXXX" 2>/dev/null)" || true
+   fi
+   [ -n "$work" ] || { echo "ERROR=could not create codex-design-review work dir"; exit 1; }
+   echo "WORK=$work"
+   ```
+   - 出力された `WORK=` のパスを `$work` として以降リテラルで使う。
+   - **`ERROR=`（exit 1）が返ったら**（`/tmp` も `.claude/` も書けない）、作業ディレクトリを確保できないので**ロックを削除してレビューをスキップし、理由をユーザーに報告**して通常フローへ戻る（下記「完了処理」のロック削除のみ実施。`$work` は空なので一時ファイル削除は不要）。
+   - レビュー記録用ディレクトリも作る: `mkdir -p "$CLAUDE_PROJECT_DIR/docs/superpowers/reviews"`。
+4. **出力先**: `out1="$work/r1"`。
 
 ## Round 1
 
-5. **プロンプト生成**: 種別に応じて `reviewer-prompt-spec.md` か `reviewer-prompt-plan.md` を読み、`{{TARGET_PATH}}` を対象パスに、`{{REFERENCES}}` をあなたが把握している関連参照(対応 spec のパス等)に置換し、`$CLAUDE_PROJECT_DIR/tmp-cdr/$uuid-prompt.md` に書き出す。
+5. **プロンプト生成**: 種別に応じて `reviewer-prompt-spec.md` か `reviewer-prompt-plan.md` を読み、`{{TARGET_PATH}}` を対象パスに、`{{REFERENCES}}` をあなたが把握している関連参照(対応 spec のパス等)に置換し、`$work/prompt.md` に書き出す。
 6. **Codex 実行**(read-only・バックグラウンド・最大15分)。Bash を `run_in_background: true` で:
    ```bash
    bash "$CLAUDE_PLUGIN_ROOT/scripts/codex-review.sh" round1 \
      "$CLAUDE_PROJECT_DIR" \
      "$CLAUDE_PLUGIN_ROOT/schemas/verdict-schema.json" \
-     "$CLAUDE_PROJECT_DIR/tmp-cdr/$uuid-prompt.md" \
+     "$work/prompt.md" \
      "$out1"
    ```
    完了を待つ。15分を超えたらジョブを停止し、ユーザーに報告してスキップ(完了処理へ)。
