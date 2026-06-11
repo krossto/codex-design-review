@@ -11,32 +11,32 @@
         "overall": {
           "type": "string",
           "enum": ["approved", "revise"],
-          "description": "approved = 重大な指摘なし。revise = 対応すべき指摘あり"
+          "description": "approved = no significant findings. revise = there are findings to address"
         },
         "confidence": {
           "type": "number",
-          "description": "0.0-1.0。レビュー全体の確信度"
+          "description": "0.0-1.0. Overall confidence of the review"
         },
         "summary": {
           "type": "string",
-          "description": "全体講評(短文)"
+          "description": "Brief overall summary"
         }
       }
     },
     "findings": {
       "type": "array",
-      "description": "actionable な指摘のみ。各指摘に具体的な修正案を必ず添える",
+      "description": "Actionable findings only. Each must include a concrete suggestion",
       "items": {
         "type": "object",
         "additionalProperties": false,
         "required": ["id", "severity", "section", "issue", "why", "suggestion"],
         "properties": {
-          "id": {"type": "string", "description": "F1, F2, ... の連番"},
+          "id": {"type": "string", "description": "Sequential id: F1, F2, ..."},
           "severity": {"type": "string", "enum": ["critical", "important", "minor"]},
-          "section": {"type": "string", "description": "対象セクション名/見出し"},
-          "issue": {"type": "string", "description": "何が問題か"},
-          "why": {"type": "string", "description": "なぜ問題か"},
-          "suggestion": {"type": "string", "description": "具体的な修正案"}
+          "section": {"type": "string", "description": "Target section name / heading"},
+          "issue": {"type": "string", "description": "What is the problem"},
+          "why": {"type": "string", "description": "Why it is a problem"},
+          "suggestion": {"type": "string", "description": "Concrete suggested fix"}
         }
       }
     }
