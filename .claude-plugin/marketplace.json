@@ -7,7 +7,7 @@
   "plugins": [
     {
       "name": "codex-design-review",
-      "description": "Cross-model review of Superpowers spec/plan documents by OpenAI Codex CLI",
+      "description": "Cross-model review of design documents by OpenAI Codex CLI. Built for the Superpowers spec/plan workflow (documents under docs/superpowers/{specs,plans}); Superpowers is recommended but not required.",
       "version": "0.2.0",
       "source": "./",
       "author": {
