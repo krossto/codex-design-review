@@ -1,52 +1,61 @@
+Japanese version: [README.ja.md](./README.ja.md)
+
 # codex-design-review
 
-Superpowers が作成する spec / plan ドキュメントを OpenAI Codex CLI に
-クロスモデルレビューさせる Claude Code 個人プラグイン。
+A Claude Code plugin that cross-model reviews spec and plan documents using OpenAI Codex CLI.
 
-## 仕組み
+## Overview / How it works
 
-1. PostToolUse hook が `docs/superpowers/{specs,plans}/**/*.md` への書き込みを検知。
-2. プロジェクトに有効化マーカーがあれば `codex-design-review` スキルの起動を指示。
-3. スキルが Codex を read-only で最大2ラウンド実行し、指摘を吟味・反映。
+1. A PostToolUse hook detects writes to `docs/superpowers/{specs,plans}/*.md`.
+2. The hook launches the `/codex-design-review:review` skill.
+3. The skill runs OpenAI Codex read-only for a bounded 2-round review loop, judges each finding, applies accepted ones, and escalates unresolved disagreements to the user.
 
-## 前提
+## Prerequisites
 
-- OpenAI Codex CLI 0.138.0+ が認証済み(`codex login status` が "Logged in")。
-  認証情報が `~/.config/codex` にある場合、スキルは自動で `CODEX_HOME` を解決する。
-- `jq` が利用可能。
+- OpenAI Codex CLI installed and authenticated (`codex login status` shows "Logged in"). If credentials live in `~/.config/codex`, the skill resolves `CODEX_HOME` automatically.
+- `jq` available on `PATH`.
+- Built for the [Superpowers](https://github.com/amidaike/superpowers) spec/plan workflow (design docs under `docs/superpowers/{specs,plans}`). Superpowers is recommended but not required; if its `receiving-code-review` skill is absent, the review falls back to a general discipline.
 
-## 導入
+## Install (scope-based)
 
-1. ローカル marketplace に登録し、インストール(初回のみ):
-   ```
-   /plugin marketplace add <このリポジトリのパス または URL>
-   /plugin install codex-design-review
-   ```
-2. ユーザー設定 `~/.claude/settings.json` の `enabledPlugins` に追加:
-   ```json
-   { "enabledPlugins": { "codex-design-review@<marketplace-name>": true } }
-   ```
+Activation is controlled by Claude Code installation scope — no per-project marker file is needed.
 
-## プロジェクトでの有効化
+### Recommended: local scope (active only in the current repo)
 
-レビューを有効にしたいプロジェクトで、マーカーファイルを置いてコミットする:
+Use the `/plugin` UI and choose **Local**, or run:
 
-```
-mkdir -p .claude
-touch .claude/codex-design-review.enabled
-git add .claude/codex-design-review.enabled
-git commit -m "chore: enable codex-design-review"
+```bash
+claude plugin install codex-design-review@<marketplace-name> --scope local
 ```
 
-マーカーが無いプロジェクトでは hook は即終了し、何もしない。
+Local scope keeps the hook isolated to one repository and avoids unintended reviews in other projects.
 
-## テスト
+### Team option: project scope
+
+To share reviews with every collaborator, install at project scope (written to committed `.claude/settings.json`):
+
+```bash
+claude plugin install codex-design-review@<marketplace-name> --scope project
+```
+
+### Important: do not enable at user scope
+
+If you install at local or project scope for selective activation, do **not** add the plugin to `enabledPlugins` in `~/.claude/settings.json` (user scope). A user-scope enable causes the hook to load in every project, bypassing scope-based gating.
+
+### Invoking the skill manually
+
+The review skill can also be invoked directly:
 
 ```
+/codex-design-review:review
+```
+
+## Tests
+
+```bash
 bats tests/
 ```
 
-## スコープ外(YAGNI)
+## Out of scope (YAGNI)
 
-実装コード/テストコードのレビュー、複数レビュアー、他モデル対応、CI 統合、
-ラウンド数・観点のプロジェクト別カスタマイズ。
+Review of implementation/test code, multiple reviewers, multi-model support, CI integration, per-project customization of round count or review focus.
