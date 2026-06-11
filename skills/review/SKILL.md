@@ -3,25 +3,24 @@ name: review
 description: Use when a Superpowers spec or plan document under docs/superpowers/{specs,plans} has just been written or edited, to get an independent cross-model review from OpenAI Codex. Triggered automatically by the codex-design-review PostToolUse hook. Runs a bounded 2-round review loop, judges each finding with technical rigor, and escalates unresolved disagreements to the user.
 ---
 
-# Codex Design Review(クロスモデルレビューループ)
+# Codex Design Review (Cross-Model Review Loop)
 
-別モデル(OpenAI Codex)に spec/plan を独立レビューさせ、指摘を技術的に吟味して反映する。
-Claude と Codex は訓練系統が異なるため、自己レビューでは見えないミスを拾える。
+Have a separate model (OpenAI Codex) independently review a spec or plan, then evaluate each finding with technical rigor and apply accepted changes. Because Claude and Codex come from different training lineages, this process surfaces mistakes that self-review would miss.
 
-**この skill を起動したら、まず TodoWrite に下記チェックリストを登録すること。**
+**When this skill is invoked, immediately register the checklist below in TodoWrite.**
 
-## 0. スキップ判定(最初に必ず行う)
+## 0. Skip Check (always do this first)
 
-直前の編集が **typo 修正・体裁調整など設計内容に実質的変更が無い**ものなら、レビューを**スキップ**し、その旨を一言ユーザーに報告して通常フローへ戻る(例: 「軽微な編集のためクロスモデルレビューはスキップしました」)。判断はあなたに委ねるが、**スキップ時も必ず報告**すること(黙殺禁止)。
+If the preceding edit was a **typo fix, formatting adjustment, or other change with no substantive design impact**, **skip** the review, report that fact to the user in one line, and return to the normal flow (e.g. "Minor edit — cross-model review skipped"). The judgment is yours, but **always report even when skipping** (silent discard is not allowed).
 
-実質的な設計変更・新規作成ならレビューを実行する。
+If the change is a substantive design modification or a new document, proceed with the review.
 
-## 前処理
+## Preprocessing
 
-1. **対象を特定**: トリガーが渡した「対象ドキュメント種別(spec/plan)」と「対象パス」を確認。プロジェクトルートは `$CLAUDE_PROJECT_DIR`。
-2. **ロック作成**(再発火抑止): `touch "$CLAUDE_PROJECT_DIR/.claude/.codex-design-review.lock"`。
-   このロックは**必ず最後に削除**する。途中でエラーになっても削除すること(下記「完了処理」)。
-3. **作業ディレクトリ解決**: OS の一時領域に作業ディレクトリ `$work` を1回だけ確保する（`TMPDIR` 尊重）。失敗したら `.claude/tmp-cdr/` へ自動フォールバック。以降このパスを全ラウンドで使う。
+1. **Identify the target**: Confirm the "document type (spec/plan)" and "target path" passed by the trigger. The project root is `$CLAUDE_PROJECT_DIR`.
+2. **Create lock** (re-fire suppression): `touch "$CLAUDE_PROJECT_DIR/.claude/.codex-design-review.lock"`.
+   This lock **must be deleted at the end** — delete it even if an error aborts the run (see "Completion" below).
+3. **Resolve work directory**: Allocate a work directory `$work` exactly once in the OS temp area (respecting `TMPDIR`). If that fails, fall back automatically to `.claude/tmp-cdr/`. Use this path for all rounds.
    ```bash
    work=""
    work="$(mktemp -d "${TMPDIR:-/tmp}/codex-design-review-XXXXXX" 2>/dev/null)" || true
@@ -32,15 +31,15 @@ Claude と Codex は訓練系統が異なるため、自己レビューでは見
    [ -n "$work" ] || { echo "ERROR=could not create codex-design-review work dir"; exit 1; }
    echo "WORK=$work"
    ```
-   - 出力された `WORK=` のパスを `$work` として以降リテラルで使う。
-   - **`ERROR=`（exit 1）が返ったら**（`/tmp` も `.claude/` も書けない）、作業ディレクトリを確保できないので**ロックを削除してレビューをスキップし、理由をユーザーに報告**して通常フローへ戻る（下記「完了処理」のロック削除のみ実施。`$work` は空なので一時ファイル削除は不要）。
-   - レビュー記録用ディレクトリも作る: `mkdir -p "$CLAUDE_PROJECT_DIR/docs/superpowers/reviews"`。
-4. **出力先**: `out1="$work/r1"`。
+   - Use the path printed as `WORK=` as `$work` for all subsequent steps.
+   - **If `ERROR=` (exit 1) is returned** (neither `/tmp` nor `.claude/` is writable), no work directory is available: **delete the lock, skip the review, report the reason to the user**, and return to the normal flow (perform only the lock deletion from "Completion" below; `$work` is empty so no temp-file cleanup is needed).
+   - Also create the review records directory: `mkdir -p "$CLAUDE_PROJECT_DIR/docs/superpowers/reviews"`.
+4. **Set output path**: `out1="$work/r1"`.
 
 ## Round 1
 
-5. **プロンプト生成**: 種別に応じて `reviewer-prompt-spec.md` か `reviewer-prompt-plan.md` を読み、`{{TARGET_PATH}}` を対象パスに、`{{REFERENCES}}` をあなたが把握している関連参照(対応 spec のパス等)に置換し、`$work/prompt.md` に書き出す。
-6. **Codex 実行**(read-only・バックグラウンド・最大15分)。Bash を `run_in_background: true` で:
+5. **Generate prompt**: Read `reviewer-prompt-spec.md` or `reviewer-prompt-plan.md` depending on document type. Substitute `{{TARGET_PATH}}` with the target path and `{{REFERENCES}}` with the related references you know (e.g. the path of the corresponding spec). Write the result to `$work/prompt.md`.
+6. **Run Codex** (read-only, background, max 15 minutes). Use Bash with `run_in_background: true`:
    ```bash
    bash "$CLAUDE_PLUGIN_ROOT/scripts/codex-review.sh" round1 \
      "$CLAUDE_PROJECT_DIR" \
@@ -48,32 +47,32 @@ Claude と Codex は訓練系統が異なるため、自己レビューでは見
      "$work/prompt.md" \
      "$out1"
    ```
-   完了を待つ。15分を超えたらジョブを停止し、ユーザーに報告してスキップ(完了処理へ)。
-7. **結果取得**: stdout の `VERDICT=` から verdict パス、`THREAD=` から thread_id を取得。
-   - スクリプトが exit 2(verdict 不正)→ フォーマット注意を添えて**1回だけ**再実行。再失敗ならユーザーに報告してスキップ。
-   - exit 3(codex 異常: CLI 不在・認証切れ等)→ レビューをスキップし、理由をユーザーに通知して通常フロー続行。
-8. **指摘の吟味**: `findings` を列挙し、**各指摘を superpowers:receiving-code-review の規律で技術的に検証**する。迎合せず、このコードベースの現実に照らして **採用(accept)/ 拒否(reject)/ 保留(hold)** を理由付きで決める。
-   - 判断結果を機械可読な **decisions JSON**(`{"F1":"reject","F2":"accept",...}`)として `$out1/decisions.json` に書き出す(収束判定 convergence.sh に渡すため)。
-9. **判断ドキュメント出力**: `docs/superpowers/reviews/YYYY-MM-DD-<topic>-codex-round1.md` を書く(フォーマットは下記、人間向け)。
-10. **採用分を反映**: 採用(accept)した指摘を対象 spec/plan に反映する。
+   Wait for completion. If it exceeds 15 minutes, stop the job, report to the user, and skip (go to Completion).
+7. **Read results**: Extract the verdict path from `VERDICT=` and the thread ID from `THREAD=` in stdout.
+   - If the script exits with code 2 (invalid verdict) → note the format issue and **retry exactly once**. If it fails again, report to the user and skip.
+   - If the script exits with code 3 (Codex error: CLI missing, authentication expired, etc.) → skip the review, notify the user, and continue the normal flow.
+8. **Evaluate findings**: List the `findings` and examine each finding with the rigor of the `superpowers:receiving-code-review` skill if it is available. If that skill is not present, fall back to a general review discipline: do not be sycophantic, judge each finding on its technical merits against the reality of this codebase, and decide accept / reject / hold with reasons.
+   - Write the decisions as machine-readable **decisions JSON** (`{"F1":"reject","F2":"accept",...}`) to `$out1/decisions.json` (passed to `convergence.sh` for convergence checking).
+9. **Write judgment document**: Write `docs/superpowers/reviews/YYYY-MM-DD-<topic>-codex-round1.md` (format below; human-readable).
+10. **Apply accepted findings**: Apply all accepted (accept) findings to the target spec/plan.
 
 ## Round 2
 
-11. **再レビュー**(resume)。`out2="$work/r2"`。round2 用プロンプトを生成: 「判断ドキュメント(<round1 のパス>)の拒否理由を読み、納得なら取り下げ、納得できなければ理由を添えて再主張せよ。**Round 1 の指摘を再主張する場合は、元の finding id をそのまま維持すること**(収束判定が id で同一論点を照合するため)。更新済みドキュメント: <対象パス>」を `$work/prompt2.md` に書き出し:
+11. **Re-review** (resume). `out2="$work/r2"`. Generate the round 2 prompt: "Read the rejection reasons in the judgment document (<round 1 path>). If convinced, withdraw the finding; if not, re-assert with reasons. **When re-asserting a Round 1 finding, keep the original finding id unchanged** (convergence checking matches topics by id). Updated document: <target path>". Write it to `$work/prompt2.md`:
     ```bash
     bash "$CLAUDE_PLUGIN_ROOT/scripts/codex-review.sh" round2 \
       "$CLAUDE_PROJECT_DIR" \
-      "<round1 で取得した thread_id>" \
+      "<thread_id obtained in round1>" \
       "$CLAUDE_PLUGIN_ROOT/schemas/verdict-schema.json" \
       "$work/prompt2.md" \
       "$out2"
     ```
-    `run_in_background: true`、完了待ち。
-12. **同様に吟味**し、`$out2/decisions.json` と判断ドキュメント `...-codex-round2.md` を出力。採用分を反映。
+    Use `run_in_background: true`; wait for completion.
+12. **Evaluate findings the same way**, write `$out2/decisions.json` and judgment document `...-codex-round2.md`. Apply accepted findings.
 
-## 収束判定
+## Convergence Check
 
-決定論的な収束判定は **convergence.sh** に委譲する(モデルの吟味結果=decisions.json を入力にする):
+Delegate deterministic convergence checking to **convergence.sh** (taking the model's evaluation results — decisions.json — as input):
 
 ```bash
 bash "$CLAUDE_PLUGIN_ROOT/scripts/convergence.sh" \
@@ -81,39 +80,39 @@ bash "$CLAUDE_PLUGIN_ROOT/scripts/convergence.sh" \
   "$out2/verdict.json" "$out2/decisions.json"
 ```
 
-- 出力 `RESULT=converged` → **完了**(下記「完了処理」へ)。
-- 出力 `RESULT=escalate` → `UNRESOLVED=` に挙がった**争点(Claude が拒否し Codex が再主張した指摘)だけ**を抜き出し、`AskUserQuestion` で三択を提示:
-  1. Codex 案を採用
-  2. Claude 案を維持
-  3. 保留(ドキュメントに保留として記録)
-  ユーザー裁定を判断ドキュメントに追記してから完了処理へ。
-- **ラウンド上限は 2 で固定**。
+- Output `RESULT=converged` → **done** (go to Completion below).
+- Output `RESULT=escalate` → extract only the **disputed points** listed in `UNRESOLVED=` (findings that Claude rejected but Codex re-asserted) and present a three-way choice via `AskUserQuestion`:
+  1. Adopt the Codex proposal
+  2. Keep the Claude position
+  3. Hold (record as held in the judgment document)
+  Append the user's ruling to the judgment document, then go to Completion.
+- **The round limit is fixed at 2.**
 
-## 完了処理(必ず実行)
+## Completion (always run)
 
-- **ロック削除**: `rm -f "$CLAUDE_PROJECT_DIR/.claude/.codex-design-review.lock"`。エラーで中断する場合も削除すること。
-- **一時ファイル削除**: `[ -n "${work:-}" ] && rm -rf -- "$work"`（`$work` が空なら何もしない安全ガード）。
-- **完了サマリ**をユーザーへ出力: 指摘数 / 採用 / 拒否 / 保留 の件数と、判断ドキュメントのパス。
-- 通常フローへ復帰。
+- **Delete lock**: `rm -f "$CLAUDE_PROJECT_DIR/.claude/.codex-design-review.lock"`. Delete this even if aborting due to an error.
+- **Delete temp files**: `[ -n "${work:-}" ] && rm -rf -- "$work"` (the guard makes this a no-op when `$work` is empty).
+- **Output completion summary** to the user: count of findings / accepted / rejected / held, and the path(s) of the judgment document(s).
+- Return to normal flow.
 
-## 判断ドキュメントのフォーマット
+## Judgment Document Format
 
 ```markdown
-# Codex レビュー判断: <対象ドキュメント名> (round N)
+# Codex Review Judgment: <target document name> (round N)
 
-- 対象: <対象パス>
-- ラウンド: N
+- Target: <target path>
+- Round: N
 - Codex thread_id: <thread_id>
 - overall: <approved|revise>  / confidence: <0.0-1.0>
-- 講評: <summary>
+- Summary: <summary>
 
-| ID | 深刻度 | 指摘(要約) | 判断 | 理由 |
+| ID | Severity | Finding (summary) | Decision | Reason |
 |---|---|---|---|---|
-| F1 | important | … | 採用 / 拒否 / 保留 / ユーザー裁定 | … |
+| F1 | important | … | accept / reject / hold / user-ruling | … |
 ```
 
-## 安全・運用の不変条件
+## Safety and Operational Invariants
 
-- Codex は**常に read-only**(codex-review.sh が強制)。`--dangerously-*` は使用禁止。
-- 1 ドキュメントあたり Codex 呼び出しは**最大 2 回**。それ以上は構造的に発生しない。
-- codex CLI が無い / 認証切れ / タイムアウト → **ブロックせずスキップ**し、必ずユーザーに報告。
+- Codex is **always read-only** (enforced by codex-review.sh). `--dangerously-*` flags are forbidden.
+- Codex is called **at most 2 times** per document. The structure prevents any more.
+- Codex CLI missing / authentication expired / timeout → **skip without blocking**; always report to the user.
