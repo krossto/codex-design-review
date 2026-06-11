@@ -1,5 +1,5 @@
 ---
-name: codex-design-review
+name: review
 description: Use when a Superpowers spec or plan document under docs/superpowers/{specs,plans} has just been written or edited, to get an independent cross-model review from OpenAI Codex. Triggered automatically by the codex-design-review PostToolUse hook. Runs a bounded 2-round review loop, judges each finding with technical rigor, and escalates unresolved disagreements to the user.
 ---
 
