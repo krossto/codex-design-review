@@ -59,13 +59,13 @@ Claude と Codex は訓練系統が異なるため、自己レビューでは見
 
 ## Round 2
 
-11. **再レビュー**(resume)。`out2="$CLAUDE_PROJECT_DIR/tmp-cdr/$uuid-r2"`。round2 用プロンプトを生成: 「判断ドキュメント(<round1 のパス>)の拒否理由を読み、納得なら取り下げ、納得できなければ理由を添えて再主張せよ。**Round 1 の指摘を再主張する場合は、元の finding id をそのまま維持すること**(収束判定が id で同一論点を照合するため)。更新済みドキュメント: <対象パス>」を `tmp-cdr/$uuid-prompt2.md` に書き出し:
+11. **再レビュー**(resume)。`out2="$work/r2"`。round2 用プロンプトを生成: 「判断ドキュメント(<round1 のパス>)の拒否理由を読み、納得なら取り下げ、納得できなければ理由を添えて再主張せよ。**Round 1 の指摘を再主張する場合は、元の finding id をそのまま維持すること**(収束判定が id で同一論点を照合するため)。更新済みドキュメント: <対象パス>」を `$work/prompt2.md` に書き出し:
     ```bash
     bash "$CLAUDE_PLUGIN_ROOT/scripts/codex-review.sh" round2 \
       "$CLAUDE_PROJECT_DIR" \
       "<round1 で取得した thread_id>" \
       "$CLAUDE_PLUGIN_ROOT/schemas/verdict-schema.json" \
-      "$CLAUDE_PROJECT_DIR/tmp-cdr/$uuid-prompt2.md" \
+      "$work/prompt2.md" \
       "$out2"
     ```
     `run_in_background: true`、完了待ち。
@@ -92,7 +92,7 @@ bash "$CLAUDE_PLUGIN_ROOT/scripts/convergence.sh" \
 ## 完了処理(必ず実行)
 
 - **ロック削除**: `rm -f "$CLAUDE_PROJECT_DIR/.claude/.codex-design-review.lock"`。エラーで中断する場合も削除すること。
-- **一時ファイル削除**: `rm -rf "$CLAUDE_PROJECT_DIR/tmp-cdr/$uuid"*`。
+- **一時ファイル削除**: `[ -n "${work:-}" ] && rm -rf -- "$work"`（`$work` が空なら何もしない安全ガード）。
 - **完了サマリ**をユーザーへ出力: 指摘数 / 採用 / 拒否 / 保留 の件数と、判断ドキュメントのパス。
 - 通常フローへ復帰。
 
