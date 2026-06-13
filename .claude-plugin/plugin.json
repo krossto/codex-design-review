@@ -1,9 +1,13 @@
 {
   "name": "codex-design-review",
-  "version": "0.2.0",
   "description": "Cross-model review of design documents by OpenAI Codex CLI. Built for the Superpowers spec/plan workflow (documents under docs/superpowers/{specs,plans}); Superpowers is recommended but not required.",
   "author": {
     "name": "krossto"
   },
-  "keywords": ["superpowers", "code-review", "codex", "cross-model"]
+  "keywords": [
+    "superpowers",
+    "code-review",
+    "codex",
+    "cross-model"
+  ]
 }
