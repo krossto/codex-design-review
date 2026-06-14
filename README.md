@@ -56,6 +56,19 @@ The review skill can also be invoked directly:
 /codex-design-review:review
 ```
 
+## Update
+
+This marketplace is third-party, so plugin auto-update is **off by default**.
+
+- **Enable auto-update (recommended):** `/plugin` → **Marketplaces** → `krossto-plugins` → **Enable auto-update**. Claude Code updates the plugin at startup and prompts you to run `/reload-plugins`.
+- **Update manually:** run the command below, then restart Claude Code to apply.
+
+```bash
+claude plugin update codex-design-review@krossto-plugins
+```
+
+Pass `--scope local` / `--scope project` to match the scope you installed at. The plugin is unversioned (SHA-driven), so "latest" tracks the `main` branch HEAD.
+
 ## Tests
 
 ```bash

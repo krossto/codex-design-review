@@ -56,6 +56,19 @@ claude plugin install codex-design-review@krossto-plugins --scope project
 /codex-design-review:review
 ```
 
+## アップデート
+
+この marketplace はサードパーティのため、プラグインの自動更新は**既定で OFF**。
+
+- **自動更新を有効化（推奨）:** `/plugin` → **Marketplaces** → `krossto-plugins` → **Enable auto-update**。以降は起動時に自動更新され、`/reload-plugins` の実行を促す通知が出る。
+- **手動更新:** 下記コマンドを実行し、Claude Code を再起動して反映する。
+
+```bash
+claude plugin update codex-design-review@krossto-plugins
+```
+
+インストール時のスコープに合わせて `--scope local` / `--scope project` を付ける。本プラグインは version 未指定（SHA 駆動）のため、「最新」は `main` ブランチの HEAD を指す。
+
 ## テスト
 
 ```bash
