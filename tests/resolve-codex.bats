@@ -125,3 +125,20 @@ EOF
   cdr_resolve_codex_home
   [ "$CODEX_HOME" = "$HOME/.config/codex" ]
 }
+
+# --- 統合: codex-review.sh の preflight ---
+
+@test "integration: codex 未解決なら preflight で exit 3 ＋ 案内メッセージ" {
+  skip_if_common_codex_exists
+  mkdir -p "$TMP/home" "$TMP/emptybin"
+  # 事前条件: この PATH/HOME では codex も npm も解決できない
+  run env -i HOME="$TMP/home" PATH="$TMP/emptybin" /bin/bash -c 'command -v codex || command -v npm'
+  [ "$status" -ne 0 ]
+  [ -z "$output" ]
+  # preflight 実行（round1 は引数5個必須。prompt/out は preflight 後に読まれるためダミーで可）
+  run env -i HOME="$TMP/home" PATH="$TMP/emptybin" /bin/bash \
+    "$ROOT/scripts/codex-review.sh" round1 \
+    "$ROOT" "$ROOT/schemas/verdict-schema.json" "$TMP/prompt.md" "$TMP/out"
+  [ "$status" -eq 3 ]
+  [[ "$output" == *"codex CLI not found"* ]]
+}

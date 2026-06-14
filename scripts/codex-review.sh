@@ -9,7 +9,7 @@
 # 出力(stdout):
 #   VERDICT=<out_dir>/verdict.json
 #   THREAD=<thread_id>
-# 終了コード: 0=成功 / 2=verdict 不正 / 3=codex 異常終了 / 4=引数不正
+# 終了コード: 0=成功 / 2=verdict 不正 / 3=codex 異常終了・実行ファイル未検出(preflight) / 4=引数不正
 
 set -uo pipefail
 
@@ -28,16 +28,24 @@ case "$cmd" in
   *) err "usage: round1|round2 ..."; exit 4 ;;
 esac
 
+# --- codex 実行ファイル / CODEX_HOME の解決（mkdir/cat より前に preflight） ---
+src="${BASH_SOURCE[0]}"
+case "$src" in */*) SCRIPT_DIR="${src%/*}";; *) SCRIPT_DIR=".";; esac
+SCRIPT_DIR="$(cd "$SCRIPT_DIR" && pwd -P)" || { err "cannot resolve script dir"; exit 3; }
+# shellcheck source=resolve-codex.sh
+. "$SCRIPT_DIR/resolve-codex.sh" || { err "cannot load resolve-codex.sh (broken deployment?)"; exit 3; }
+
+codex_bin="$(cdr_resolve_codex_bin)" || {
+  err "codex CLI not found (PATH / npm global bin / common locations). Install: 'npm i -g @openai/codex', or set CDR_CODEX_BIN."
+  exit 3
+}
+
+cdr_resolve_codex_home   # CODEX_HOME を必要時のみ export
+
 mkdir -p "$out_dir"
 verdict="$out_dir/verdict.json"
 events="$out_dir/events.jsonl"
 prompt="$(cat "$prompt_file")"
-codex_bin="${CDR_CODEX_BIN:-codex}"
-
-# --- CODEX_HOME 解決(実機知見 §4) ---
-if [ -z "${CODEX_HOME:-}" ] && [ -f "$HOME/.config/codex/auth.json" ]; then
-  export CODEX_HOME="$HOME/.config/codex"
-fi
 
 # --- codex 実行 ---
 # 注: codex exec は positional プロンプトを与えても stdin を読みに行く。
