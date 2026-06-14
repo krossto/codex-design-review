@@ -33,3 +33,28 @@ cdr_resolve_codex_bin() {
   done
   return 1
 }
+
+# CODEX_HOME を必要時のみ export する。常に 0 を返す（設定不在はエラーにしない）。
+cdr_resolve_codex_home() {
+  # 既存設定は尊重（上書きしない）
+  if [ -n "${CODEX_HOME:-}" ]; then
+    return 0
+  fi
+  local d
+  # パス1: auth.json 優先（実ファイル認証の最強シグナル）
+  for d in "$HOME/.codex" "$HOME/.config/codex"; do
+    if [ -f "$d/auth.json" ]; then
+      export CODEX_HOME="$d"
+      return 0
+    fi
+  done
+  # パス2: config.toml フォールバック（keyring 認証で auth.json が無いケース）
+  for d in "$HOME/.codex" "$HOME/.config/codex"; do
+    if [ -f "$d/config.toml" ]; then
+      export CODEX_HOME="$d"
+      return 0
+    fi
+  done
+  # どちらも無ければ未設定のまま（Codex 既定 ~/.codex ＋ keyring に委譲）
+  return 0
+}

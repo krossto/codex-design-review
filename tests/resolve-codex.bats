@@ -70,3 +70,58 @@ EOF
   [ "$status" -ne 0 ]
   [ -z "$output" ]
 }
+
+# --- home 解決（直接呼び出して $CODEX_HOME を検査。run はサブシェルで export が伝播しないため使わない） ---
+
+@test "home: CODEX_HOME 設定済みは尊重（上書きしない）" {
+  HOME="$TMP/home"
+  mkdir -p "$HOME/.codex"; : > "$HOME/.codex/auth.json"
+  export CODEX_HOME="$TMP/preset"
+  cdr_resolve_codex_home
+  [ "$CODEX_HOME" = "$TMP/preset" ]
+}
+
+@test "home: 未設定で ~/.codex/auth.json → ~/.codex（パス1）" {
+  HOME="$TMP/home"; unset CODEX_HOME
+  mkdir -p "$HOME/.codex"; : > "$HOME/.codex/auth.json"
+  cdr_resolve_codex_home
+  [ "$CODEX_HOME" = "$HOME/.codex" ]
+}
+
+@test "home: 未設定で ~/.codex に config.toml のみ（keyring）→ ~/.codex（パス2）" {
+  HOME="$TMP/home"; unset CODEX_HOME
+  mkdir -p "$HOME/.codex"; : > "$HOME/.codex/config.toml"
+  cdr_resolve_codex_home
+  [ "$CODEX_HOME" = "$HOME/.codex" ]
+}
+
+@test "home: 未設定で ~/.config/codex/auth.json のみ → ~/.config/codex（パス1）" {
+  HOME="$TMP/home"; unset CODEX_HOME
+  mkdir -p "$HOME/.config/codex"; : > "$HOME/.config/codex/auth.json"
+  cdr_resolve_codex_home
+  [ "$CODEX_HOME" = "$HOME/.config/codex" ]
+}
+
+@test "home: 未設定で両方に auth.json → ~/.codex 優先（パス1の順序）" {
+  HOME="$TMP/home"; unset CODEX_HOME
+  mkdir -p "$HOME/.codex" "$HOME/.config/codex"
+  : > "$HOME/.codex/auth.json"; : > "$HOME/.config/codex/auth.json"
+  cdr_resolve_codex_home
+  [ "$CODEX_HOME" = "$HOME/.codex" ]
+}
+
+@test "home: 未設定でどちらにも何も無し → 未設定のまま" {
+  HOME="$TMP/home"; unset CODEX_HOME
+  mkdir -p "$HOME/.codex" "$HOME/.config/codex"
+  cdr_resolve_codex_home
+  [ -z "${CODEX_HOME:-}" ]
+}
+
+@test "home: 実機回帰 — ~/.codex は config.toml のみ・~/.config/codex に auth.json → ~/.config/codex" {
+  HOME="$TMP/home"; unset CODEX_HOME
+  mkdir -p "$HOME/.codex" "$HOME/.config/codex"
+  : > "$HOME/.codex/config.toml"
+  : > "$HOME/.config/codex/auth.json"
+  cdr_resolve_codex_home
+  [ "$CODEX_HOME" = "$HOME/.config/codex" ]
+}
