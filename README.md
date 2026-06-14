@@ -12,7 +12,7 @@ A Claude Code plugin that cross-model reviews spec and plan documents using Open
 
 ## Prerequisites
 
-- OpenAI Codex CLI installed and authenticated (`codex login status` shows "Logged in"). If credentials live in `~/.config/codex`, the skill resolves `CODEX_HOME` automatically.
+- OpenAI Codex CLI installed and authenticated (`codex login status` shows "Logged in"). The skill resolves the `codex` executable automatically (PATH, then the npm global bin via `npm prefix -g`, then common install locations) and resolves `CODEX_HOME` automatically (checking `~/.codex` and `~/.config/codex`). If `codex` is managed by nvm/asdf/Volta and isn't on the hook's PATH, set `CDR_CODEX_BIN` to its full path.
 - `jq` available on `PATH`.
 - Built for the [Superpowers](https://github.com/amidaike/superpowers) spec/plan workflow (design docs under `docs/superpowers/{specs,plans}`). Superpowers is recommended but not required; if its `receiving-code-review` skill is absent, the review falls back to a general discipline.
 
