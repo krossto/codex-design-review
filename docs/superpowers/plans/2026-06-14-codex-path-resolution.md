@@ -8,7 +8,7 @@
 
 **Tech Stack:** bash（`#!/usr/bin/env bash`、配列・パラメータ展開・builtin 中心）、bats（既存テスト資産）、jq。
 
-**設計の出典:** `docs/superpowers/specs/2026-06-14-codex-path-resolution-design.md`（Codex クロスレビュー converged 済み）。
+**設計の出典:** `docs/superpowers/specs/2026-06-14-codex-path-resolution-design.md`。
 
 ---
 
@@ -443,7 +443,7 @@ Run:
 ```bash
 ( unset CDR_CODEX_BIN; PATH="/usr/bin:/bin" bash -c '. scripts/resolve-codex.sh; cdr_resolve_codex_bin; echo "rc=$?"' )
 ```
-Expected: 本環境では `npm prefix -g`(=`~/.npm-global`) 経由で `/home/krossto/.npm-global/bin/codex` が出力され `rc=0`。
+Expected: `npm prefix -g` 経由で解決された codex のパス（例: `$(npm prefix -g)/bin/codex`）が出力され `rc=0`。
 
 - [ ] **Step 3: push して PR を作成**
 
