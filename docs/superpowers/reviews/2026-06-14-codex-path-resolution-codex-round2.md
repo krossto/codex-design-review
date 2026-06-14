@@ -8,7 +8,7 @@
 
 | ID | Severity | Finding (summary) | Decision | Reason |
 |---|---|---|---|---|
-| F2 | important | test 12 の例 PATH `/usr/bin:/bin` は不確実。npm が /usr/bin にある実機では `npm prefix -g` が実 codex を発見し exit 3 にならない | accept | 本環境はまさに該当（`/usr/bin/npm` 実在、codex は `~/.npm-global/bin`）。HOME と PATH を制御した hermetic テストへ修正（空 PATH＋空 HOME＋絶対 bash＋事前条件 assert） |
+| F2 | important | test 12 の例 PATH `/usr/bin:/bin` は不確実。npm が /usr/bin にある環境では `npm prefix -g` が実 codex を発見し exit 3 にならない | accept | 実際に起こりうる構成（`npm` が `/usr/bin` にあり、`codex` は npm グローバル bin にある場合）。HOME と PATH を制御した hermetic テストへ修正（空 PATH＋空 HOME＋絶対 bash＋事前条件 assert） |
 | F3 | minor | §2.2（`npm bin -g` を best-effort で残す）と §3.2（廃止・除外）が自己矛盾 | accept | §3.2 に合わせ §2.2 から `npm bin -g` を削除。優先順は `npm prefix -g`／`$HOME/.npm-global/bin`／`/usr/local/bin`／`/opt/homebrew/bin` のみ |
 
 ## 反映内容
