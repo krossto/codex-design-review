@@ -20,12 +20,18 @@ A Claude Code plugin that cross-model reviews spec and plan documents using Open
 
 Activation is controlled by Claude Code installation scope — no per-project marker file is needed.
 
+First, add the marketplace (once per machine):
+
+```bash
+claude plugin marketplace add krossto/claude-plugins
+```
+
 ### Recommended: local scope (active only in the current repo)
 
 Use the `/plugin` UI and choose **Local**, or run:
 
 ```bash
-claude plugin install codex-design-review@<marketplace-name> --scope local
+claude plugin install codex-design-review@krossto-plugins --scope local
 ```
 
 Local scope keeps the hook isolated to one repository and avoids unintended reviews in other projects.
@@ -35,7 +41,7 @@ Local scope keeps the hook isolated to one repository and avoids unintended revi
 To share reviews with every collaborator, install at project scope (written to committed `.claude/settings.json`):
 
 ```bash
-claude plugin install codex-design-review@<marketplace-name> --scope project
+claude plugin install codex-design-review@krossto-plugins --scope project
 ```
 
 ### Important: do not enable at user scope
@@ -49,6 +55,19 @@ The review skill can also be invoked directly:
 ```
 /codex-design-review:review
 ```
+
+## Update
+
+This marketplace is third-party, so plugin auto-update is **off by default**.
+
+- **Enable auto-update (recommended):** `/plugin` → **Marketplaces** → `krossto-plugins` → **Enable auto-update**. Claude Code updates the plugin at startup and prompts you to run `/reload-plugins`.
+- **Update manually:** run the command below, then restart Claude Code to apply.
+
+```bash
+claude plugin update codex-design-review@krossto-plugins
+```
+
+Pass `--scope local` / `--scope project` to match the scope you installed at. The plugin is unversioned (SHA-driven), so "latest" tracks the `main` branch HEAD.
 
 ## Tests
 
